@@ -1,46 +1,22 @@
+require('dotenv').config();
+
 const { GraphQLServer } = require('graphql-yoga'); 
+const  { importSchema } = require('graphql-import');
+const resolvers = require('./src/resolvers');
 
+const mongoose = require('mongoose');
 
-const typeDefs = `
-    type Query{
-        hello(name: String!): String!
-        getUsers:[User]!
-        getUser(id: ID!): User!
-    }
+mongoose.connect( process.env.MONGO_URL, {
+useNewUrlParser: true,
+    useCreateIndex: true,
+    useUnifiedTopology: true
+});
 
-    type Mutation{
-        createUser(name:String!,age:Int!): User!
-        
-    }
+const mongo = mongoose.connection();
 
-    type User{
-        id:Int!
-        name:String!
-        age:Int!
-    }
-`;
+mongo.on('error', error => console.log(error)).once('open', () => console.log('Connected to Database'));
 
-const users = [];
-
-const resolvers = {
-    Query:{
-        hello: (root, params, context, info) => `Hola ${params.name}`,
-        getUsers: (root, params, context, info) => users,
-        getUser: (root, {id}, context, info) => users.find(u => u.id == id),
-    },
-    Mutation:{
-        createUser: (root, { name,  age}, context, info) => {
-            const user = {
-                id: users.length + 123214,
-                name,
-                age,
-            };
-            users.push(user);
-            return user;
-        }
-    },
-};
-
+const typeDefs = importSchema(__dirname+'/schema.graphql');
 /**
  * 
  * root: Información del server de gql
